@@ -85,6 +85,10 @@ public class ScraperService {
                         .collect(Collectors.toList()))
                 .collect(Collectors.toList()));
 
+        if (applicationContext.containsBean(beanName)) {
+            applicationContext.removeBeanDefinition(beanName);
+        }
+
         return list;
 
     }
