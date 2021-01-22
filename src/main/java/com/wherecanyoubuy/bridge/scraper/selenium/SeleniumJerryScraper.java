@@ -2,8 +2,7 @@ package com.wherecanyoubuy.bridge.scraper.selenium;
 
 import com.wherecanyoubuy.bridge.scraper.AbstractScraper;
 import com.wherecanyoubuy.bridge.scraper.ScrapedElementInteface;
-import com.wherecanyoubuy.bridge.scraper.jsoup.JsoupElement;
-import org.jsoup.Jsoup;
+import jodd.jerry.Jerry;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.slf4j.LoggerFactory;
 
@@ -12,11 +11,11 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-public class SeleniumJsoupScraper extends AbstractScraper {
+public class SeleniumJerryScraper extends AbstractScraper {
     private ChromeDriver driver;
 
-    public SeleniumJsoupScraper() {
-        super(LoggerFactory.getLogger(SeleniumJsoupScraper.class));
+    public SeleniumJerryScraper() {
+        super(LoggerFactory.getLogger(SeleniumJerryScraper.class));
         // Set the system property for Chrome driver
         System.setProperty("webdriver.chrome.driver", "src/main/resources/driver/chromedriver.exe");
         driver = new ChromeDriver();
@@ -37,9 +36,9 @@ public class SeleniumJsoupScraper extends AbstractScraper {
         List<ScrapedElementInteface> list = driver
                 .findElementsByCssSelector(cssQuery)
                 .stream()
-                .map(webElement -> JsoupElement
+                .map(webElement -> JerryElement
                         .builder()
-                        .element(Jsoup.parse(
+                        .jerry(Jerry.of(
                                 webElement.getAttribute("outerHTML")))
                         .build())
                 .collect(Collectors.toList());

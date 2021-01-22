@@ -21,11 +21,12 @@ public class BridgeConfiguration {
                 .builder()
                 .scraperService(ScraperService
                         .builder()
-                        .applicationContext(new DefaultListableBeanFactory())
+                        .defaultListableBeanFactory(new DefaultListableBeanFactory())
                         .build())
                 .build();
 
         return RouterFunctions
                 .route(POST("/bridge/search").and(accept(APPLICATION_JSON)), bridgeHandler::search);
+
     }
 }

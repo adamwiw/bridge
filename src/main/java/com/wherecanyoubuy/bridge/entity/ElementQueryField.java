@@ -9,7 +9,7 @@ import lombok.Setter;
 @Setter
 public class ElementQueryField {
     private String name;
-    private String cssSelector;
+    private String cssQuery;
     private boolean isAttribute;
     private String attributeName;
     private String queryResult;

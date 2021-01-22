@@ -2,12 +2,32 @@ package com.wherecanyoubuy.bridge.scraper;
 
 import org.slf4j.Logger;
 
+import java.io.IOException;
+
 public abstract class AbstractScraper implements ScraperInterface {
     protected Logger log;
+    protected boolean isBusy;
+    private String name;
 
     protected AbstractScraper(Logger log) {
         this.log = log;
-        String message = AbstractScraper.super.getClass().getName() + " started.";
+        String[] className = AbstractScraper.super.getClass().getName().split("\\.");
+        name = className[className.length - 1]
+                .substring(0, 1)
+                .toLowerCase() + className[className.length - 1]
+                .substring(1).replace("Scraper", "");
+        String message = name + " instance started.";
+        log.info(message);
+        isBusy = true;
+    }
+
+    public void getUrl(String url) throws IOException {
+        String message = name + " GET: " + url;
+        log.info(message);
+    }
+
+    public void quit() {
+        String message = name + " instance stopped.";
         log.info(message);
     }
 }

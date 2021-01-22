@@ -18,40 +18,32 @@ import java.util.stream.Collectors;
 @Builder
 @Slf4j
 public class ScraperService {
-    private DefaultListableBeanFactory applicationContext;
+    private DefaultListableBeanFactory defaultListableBeanFactory;
 
     public Mono<List<List<SerializableSimpleEntry<String, String>>>> search(
             BridgeRequestEntity bridgeRequestEntity) {
         String scraperName = bridgeRequestEntity.getScraperName();
         String beanName = scraperName +
                 bridgeRequestEntity.getUrl();
-        Class<?> clazz = null;
-
-        try {
-            clazz = Class.forName(
-                    "com.wherecanyoubuy.bridge.configuration.bean." +
-                            scraperName.substring(0, 1).toUpperCase() +
-                            scraperName.substring(1) + "ScraperBean");
-        } catch (ClassNotFoundException e) {
-            log.error(e.getMessage());
-            return Mono.just(List.of());
-        }
 
         ScraperBeanInterface scraperBeanInterface;
         ScraperInterface scraperInterface = null;
 
         try {
             scraperBeanInterface = (ScraperBeanInterface)
-                    applicationContext.getBean(clazz);
+                    defaultListableBeanFactory.getBean(beanName);
             scraperInterface = scraperBeanInterface.getScraper();
         } catch (NoSuchBeanDefinitionException exception) {
             try {
                 GenericBeanDefinition gbd = new GenericBeanDefinition();
-                gbd.setBeanClass(clazz);
-                applicationContext.registerBeanDefinition(beanName, gbd);
+                gbd.setBeanClass(Class.forName(
+                        "com.wherecanyoubuy.bridge.configuration.bean." +
+                                scraperName.substring(0, 1).toUpperCase() +
+                                scraperName.substring(1) + "ScraperBean"));
+                defaultListableBeanFactory.registerBeanDefinition(beanName, gbd);
 
                 scraperBeanInterface = (ScraperBeanInterface)
-                        applicationContext.getBean(clazz);
+                        defaultListableBeanFactory.getBean(beanName);
                 scraperInterface = scraperBeanInterface.getScraper();
                 scraperInterface.getUrl(bridgeRequestEntity.getUrl());
             } catch (Exception e) {
@@ -63,7 +55,7 @@ public class ScraperService {
         Mono<List<List<SerializableSimpleEntry<String, String>>>> list = Mono.just(scraperInterface
                 .findElements(bridgeRequestEntity
                         .getElementQuery()
-                        .getItemCssSelector())
+                        .getItemCssQuery())
                 .stream()
                 .map(scrapedElements -> bridgeRequestEntity
                         .getElementQuery()
@@ -72,24 +64,23 @@ public class ScraperService {
                         .map(webElementQueryField -> {
                             List<ScrapedElementInteface> scrapedElements1 =
                                     scrapedElements.findElements(
-                                            webElementQueryField.getCssSelector());
+                                            webElementQueryField.getCssQuery());
                             return new SerializableSimpleEntry<>(webElementQueryField.getName(),
                                     webElementQueryField
                                             .isAttribute() ? scrapedElements1
-                                            .get(0)
+                                            .remove(0)
                                             .getAttribute(webElementQueryField
                                                     .getAttributeName()) : scrapedElements1
-                                            .get(0)
+                                            .remove(0)
                                             .getText());
                         })
                         .collect(Collectors.toList()))
                 .collect(Collectors.toList()));
 
-        if (applicationContext.containsBean(beanName)) {
-            applicationContext.removeBeanDefinition(beanName);
+        if (defaultListableBeanFactory.containsBean(beanName) && !scraperInterface.isBusy()) {
+            defaultListableBeanFactory.removeBeanDefinition(beanName);
         }
 
         return list;
-
     }
 }

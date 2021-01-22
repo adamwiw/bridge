@@ -22,8 +22,8 @@ public class JsoupElement implements ScrapedElementInteface {
     }
 
     @Override
-    public List<ScrapedElementInteface> findElements(String selector) {
-        return element.select(selector)
+    public List<ScrapedElementInteface> findElements(String cssQuery) {
+        return element.select(cssQuery)
                 .stream()
                 .map(webElement1 ->
                         JsoupElement

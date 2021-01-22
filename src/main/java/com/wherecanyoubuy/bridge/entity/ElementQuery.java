@@ -8,6 +8,6 @@ import java.util.List;
 @Builder
 @Getter
 public class ElementQuery {
-    private String itemCssSelector;
+    private String itemCssQuery;
     private List<ElementQueryField> elementQueryFields;
 }

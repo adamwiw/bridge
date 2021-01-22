@@ -24,8 +24,8 @@ public class SeleniumElement implements ScrapedElementInteface {
     }
 
     @Override
-    public List<ScrapedElementInteface> findElements(String selector) {
-        return webElement.findElements(By.cssSelector(selector))
+    public List<ScrapedElementInteface> findElements(String cssQuery) {
+        return webElement.findElements(By.cssSelector(cssQuery))
                 .stream()
                 .map(webElement1 ->
                         SeleniumElement

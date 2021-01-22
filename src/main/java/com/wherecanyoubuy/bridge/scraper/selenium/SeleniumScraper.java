@@ -4,6 +4,7 @@ import com.wherecanyoubuy.bridge.scraper.AbstractScraper;
 import com.wherecanyoubuy.bridge.scraper.ScrapedElementInteface;
 import org.openqa.selenium.chrome.ChromeDriver;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -24,16 +25,15 @@ public class SeleniumScraper extends AbstractScraper {
     }
 
     @Override
-    public void getUrl(String url) {
-        String message = "GET: " + url;
-        log.info(message);
+    public void getUrl(String url) throws IOException {
+        super.getUrl(url);
         driver.get(url);
     }
 
     @Override
-    public List<ScrapedElementInteface> findElements(String selector) {
-        return driver
-                .findElementsByCssSelector(selector)
+    public List<ScrapedElementInteface> findElements(String cssQuery) {
+        List<ScrapedElementInteface> list = driver
+                .findElementsByCssSelector(cssQuery)
                 .stream()
                 .map(webElement ->
                         SeleniumElement
@@ -41,10 +41,18 @@ public class SeleniumScraper extends AbstractScraper {
                                 .webElement(webElement)
                                 .build())
                 .collect(Collectors.toList());
+        isBusy = false;
+        return list;
     }
 
+    @Override
+    public boolean isBusy() {
+        return isBusy;
+    }
+
+    @Override
     public void quit() {
-        log.info("Shutting down");
+        super.quit();
         driver.quit();
     }
 }

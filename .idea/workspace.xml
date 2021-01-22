@@ -1,7 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="9b6af534-e337-4469-b99d-8a7647b4b208" name="Default Changelist" comment="" />
+    <list default="true" id="9b6af534-e337-4469-b99d-8a7647b4b208" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/sonarlint/issuestore/9/f/9fb2991d0d1c47bf15b5e09f0f1f15966154a9a4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/sonarlint/issuestore/index.pb" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/sonarlint/issuestore/index.pb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bridge.iml" beforeDir="false" afterPath="$PROJECT_DIR$/bridge.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/wherecanyoubuy/bridge/configuration/BridgeConfiguration.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/wherecanyoubuy/bridge/configuration/BridgeConfiguration.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/wherecanyoubuy/bridge/entity/ElementQuery.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/wherecanyoubuy/bridge/entity/ElementQuery.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/wherecanyoubuy/bridge/entity/ElementQueryField.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/wherecanyoubuy/bridge/entity/ElementQueryField.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/wherecanyoubuy/bridge/scraper/AbstractScraper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/wherecanyoubuy/bridge/scraper/AbstractScraper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/wherecanyoubuy/bridge/scraper/ScrapedElementInteface.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/wherecanyoubuy/bridge/scraper/ScrapedElementInteface.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/wherecanyoubuy/bridge/scraper/ScraperInterface.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/wherecanyoubuy/bridge/scraper/ScraperInterface.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/wherecanyoubuy/bridge/scraper/jsoup/JsoupElement.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/wherecanyoubuy/bridge/scraper/jsoup/JsoupElement.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/wherecanyoubuy/bridge/scraper/selenium/SeleniumElement.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/wherecanyoubuy/bridge/scraper/selenium/SeleniumElement.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/wherecanyoubuy/bridge/scraper/selenium/SeleniumJsoupScraper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/wherecanyoubuy/bridge/scraper/selenium/SeleniumJsoupScraper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/wherecanyoubuy/bridge/scraper/selenium/SeleniumScraper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/wherecanyoubuy/bridge/scraper/selenium/SeleniumScraper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/wherecanyoubuy/bridge/service/ScraperService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/wherecanyoubuy/bridge/service/ScraperService.java" afterDir="false" />
+    </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -16,6 +34,9 @@
       </list>
     </option>
   </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
   <component name="MavenImportPreferences">
     <option name="importingSettings">
       <MavenImportingSettings>
@@ -24,7 +45,9 @@
     </option>
   </component>
   <component name="ProjectId" id="1nGi7QkzEfAJAE8WllO4EWFmRqi" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="PropertiesComponent">
+    <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
   </component>
   <component name="RecentsManager">
@@ -86,5 +109,29 @@
       <updated>1611022660944</updated>
     </task>
     <servers />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State>
+              <option name="COLUMN_ORDER" />
+            </State>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/main/java/com/wherecanyoubuy/bridge/scraper/jsoup/JsoupScraper.java</url>
+          <line>30</line>
+          <option name="timeStamp" value="38" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>
