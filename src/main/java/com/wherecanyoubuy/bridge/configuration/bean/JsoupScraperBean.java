@@ -2,13 +2,15 @@ package com.wherecanyoubuy.bridge.configuration.bean;
 
 import com.wherecanyoubuy.bridge.scraper.jsoup.JsoupScraper;
 import org.springframework.beans.factory.DisposableBean;
-import org.springframework.stereotype.Component;
 
-@Component
 public class JsoupScraperBean implements DisposableBean, ScraperBeanInterface {
     private JsoupScraper jsoupScraper;
-    public JsoupScraper getScraper() {
+
+    public JsoupScraperBean() {
         jsoupScraper = new JsoupScraper();
+    }
+
+    public JsoupScraper getScraper() {
         return jsoupScraper;
     }
 

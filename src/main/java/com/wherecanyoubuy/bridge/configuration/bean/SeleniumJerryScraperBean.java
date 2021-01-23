@@ -2,14 +2,15 @@ package com.wherecanyoubuy.bridge.configuration.bean;
 
 import com.wherecanyoubuy.bridge.scraper.selenium.SeleniumJerryScraper;
 import org.springframework.beans.factory.DisposableBean;
-import org.springframework.stereotype.Component;
 
-@Component
 public class SeleniumJerryScraperBean implements DisposableBean, ScraperBeanInterface {
     private SeleniumJerryScraper scraper;
 
-    public SeleniumJerryScraper getScraper() {
+    public SeleniumJerryScraperBean() {
         scraper = new SeleniumJerryScraper();
+    }
+
+    public SeleniumJerryScraper getScraper() {
         return scraper;
     }
 

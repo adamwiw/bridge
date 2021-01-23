@@ -8,16 +8,20 @@ import com.wherecanyoubuy.bridge.scraper.ScraperInterface;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
-import org.springframework.beans.factory.support.GenericBeanDefinition;
+import org.springframework.context.ApplicationContext;
 import reactor.core.publisher.Mono;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Builder
 @Slf4j
 public class ScraperService {
+    @Autowired
+    ApplicationContext applicationContext;
     private DefaultListableBeanFactory defaultListableBeanFactory;
 
     public Mono<List<List<SerializableSimpleEntry<String, String>>>> search(
@@ -31,28 +35,33 @@ public class ScraperService {
 
         try {
             scraperBeanInterface = (ScraperBeanInterface)
-                    defaultListableBeanFactory.getBean(beanName);
+                    defaultListableBeanFactory.getSingleton(beanName);
             scraperInterface = scraperBeanInterface.getScraper();
-        } catch (NoSuchBeanDefinitionException exception) {
+            log.info("obtained old instance");
+        } catch (NoSuchBeanDefinitionException | NullPointerException exception) {
+            log.info("caught exception: " + exception.getMessage());
             try {
-                GenericBeanDefinition gbd = new GenericBeanDefinition();
-                gbd.setBeanClass(Class.forName(
-                        "com.wherecanyoubuy.bridge.configuration.bean." +
-                                scraperName.substring(0, 1).toUpperCase() +
-                                scraperName.substring(1) + "ScraperBean"));
-                defaultListableBeanFactory.registerBeanDefinition(beanName, gbd);
+                if (!defaultListableBeanFactory.containsBean(beanName) && !defaultListableBeanFactory.isSingletonCurrentlyInCreation(beanName)) {
+                    defaultListableBeanFactory.registerSingleton(beanName, Class.forName(
+                            "com.wherecanyoubuy.bridge.configuration.bean." +
+                                    scraperName.substring(0, 1).toUpperCase() +
+                                    scraperName.substring(1) + "ScraperBean")
+                            .getDeclaredConstructor()
+                            .newInstance());
+                }
 
                 scraperBeanInterface = (ScraperBeanInterface)
-                        defaultListableBeanFactory.getBean(beanName);
+                        defaultListableBeanFactory.getSingleton(beanName);
                 scraperInterface = scraperBeanInterface.getScraper();
                 scraperInterface.getUrl(bridgeRequestEntity.getUrl());
+                log.info("execute get");
             } catch (Exception e) {
                 log.error(e.getMessage());
-                return Mono.just(List.of());
+                return Mono.just(Collections.singletonList(null));
             }
         }
 
-        Mono<List<List<SerializableSimpleEntry<String, String>>>> list = Mono.just(scraperInterface
+        List<List<SerializableSimpleEntry<String, String>>> list = scraperInterface
                 .findElements(bridgeRequestEntity
                         .getElementQuery()
                         .getItemCssQuery())
@@ -75,12 +84,16 @@ public class ScraperService {
                                             .getText());
                         })
                         .collect(Collectors.toList()))
-                .collect(Collectors.toList()));
+                .collect(Collectors.toList());
 
-        if (defaultListableBeanFactory.containsBean(beanName) && !scraperInterface.isBusy()) {
-            defaultListableBeanFactory.removeBeanDefinition(beanName);
+        log.info("busy: " + scraperInterface.isBusy());
+
+        if (defaultListableBeanFactory.containsBean(beanName)) {
+            defaultListableBeanFactory.destroySingleton(beanName);
+            log.info("destroyed. contains: " + defaultListableBeanFactory.containsBean(beanName));
         }
 
-        return list;
+
+        return Mono.just(list);
     }
 }
