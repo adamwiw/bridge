@@ -3,7 +3,7 @@ package com.wherecanyoubuy.bridge.configuration.bean;
 import com.wherecanyoubuy.bridge.scraper.selenium.SeleniumJsoupScraper;
 import org.springframework.beans.factory.DisposableBean;
 
-public class SeleniumJsoupScraperBean implements DisposableBean, ScraperBeanInterface {
+public class SeleniumJsoupScraperBean implements ScraperBeanInterface {
     private SeleniumJsoupScraper scraper;
 
     public SeleniumJsoupScraperBean() {

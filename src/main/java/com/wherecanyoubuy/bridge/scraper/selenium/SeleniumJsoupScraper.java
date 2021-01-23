@@ -17,6 +17,11 @@ public class SeleniumJsoupScraper extends AbstractScraper {
 
     public SeleniumJsoupScraper() {
         super(LoggerFactory.getLogger(SeleniumJsoupScraper.class));
+    }
+
+    @Override
+    public void startScraper() {
+        super.startScraper();
         // Set the system property for Chrome driver
         System.setProperty("webdriver.chrome.driver", "src/main/resources/driver/chromedriver.exe");
         driver = new ChromeDriver();
@@ -34,7 +39,7 @@ public class SeleniumJsoupScraper extends AbstractScraper {
 
     @Override
     public List<ScrapedElementInteface> findElements(String cssQuery) {
-        List<ScrapedElementInteface> list = driver
+        return driver
                 .findElementsByCssSelector(cssQuery)
                 .stream()
                 .map(webElement -> JsoupElement
@@ -43,13 +48,6 @@ public class SeleniumJsoupScraper extends AbstractScraper {
                                 webElement.getAttribute("outerHTML")))
                         .build())
                 .collect(Collectors.toList());
-        isBusy = false;
-        return list;
-    }
-
-    @Override
-    public boolean isBusy() {
-        return isBusy;
     }
 
     @Override

@@ -6,7 +6,6 @@ import java.io.IOException;
 
 public abstract class AbstractScraper implements ScraperInterface {
     protected Logger log;
-    protected boolean isBusy;
     private String name;
 
     protected AbstractScraper(Logger log) {
@@ -16,9 +15,11 @@ public abstract class AbstractScraper implements ScraperInterface {
                 .substring(0, 1)
                 .toLowerCase() + className[className.length - 1]
                 .substring(1).replace("Scraper", "");
+    }
+
+    public void startScraper() {
         String message = name + " instance started.";
-        log.info(message);
-        isBusy = true;
+        log.debug(message);
     }
 
     public void getUrl(String url) throws IOException {
@@ -28,6 +29,6 @@ public abstract class AbstractScraper implements ScraperInterface {
 
     public void quit() {
         String message = name + " instance stopped.";
-        log.info(message);
+        log.debug(message);
     }
 }

@@ -19,10 +19,7 @@ public class BridgeConfiguration {
     public RouterFunction<ServerResponse> route() {
         BridgeHandler bridgeHandler = BridgeHandler
                 .builder()
-                .scraperService(ScraperService
-                        .builder()
-                        .defaultListableBeanFactory(new DefaultListableBeanFactory())
-                        .build())
+                .scraperService(new ScraperService(new DefaultListableBeanFactory()))
                 .build();
 
         return RouterFunctions

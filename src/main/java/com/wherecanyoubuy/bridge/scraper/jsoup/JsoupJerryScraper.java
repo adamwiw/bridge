@@ -2,6 +2,8 @@ package com.wherecanyoubuy.bridge.scraper.jsoup;
 
 import com.wherecanyoubuy.bridge.scraper.AbstractScraper;
 import com.wherecanyoubuy.bridge.scraper.ScrapedElementInteface;
+import com.wherecanyoubuy.bridge.scraper.selenium.JerryElement;
+import jodd.jerry.Jerry;
 import lombok.Synchronized;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -12,11 +14,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 
-public class JsoupScraper extends AbstractScraper {
+public class JsoupJerryScraper extends AbstractScraper {
     private Document document;
 
-    public JsoupScraper() {
-        super(LoggerFactory.getLogger(JsoupScraper.class));
+    public JsoupJerryScraper() {
+        super(LoggerFactory.getLogger(JsoupJerryScraper.class));
     }
 
     @Override
@@ -34,9 +36,9 @@ public class JsoupScraper extends AbstractScraper {
         return document
                 .select(cssQuery)
                 .stream()
-                .map(element -> JsoupElement
+                .map(element -> JerryElement
                         .builder()
-                        .element(element)
+                        .jerry(Jerry.of(element.outerHtml()))
                         .build())
                 .collect(Collectors.toList());
     }

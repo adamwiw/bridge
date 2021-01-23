@@ -5,63 +5,27 @@ import com.wherecanyoubuy.bridge.entity.BridgeRequestEntity;
 import com.wherecanyoubuy.bridge.entity.SerializableSimpleEntry;
 import com.wherecanyoubuy.bridge.scraper.ScrapedElementInteface;
 import com.wherecanyoubuy.bridge.scraper.ScraperInterface;
-import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.NoSuchBeanDefinitionException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
-import org.springframework.context.ApplicationContext;
+import org.springframework.beans.factory.support.GenericBeanDefinition;
 import reactor.core.publisher.Mono;
 
-import java.util.Collections;
+import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Builder
 @Slf4j
 public class ScraperService {
-    @Autowired
-    ApplicationContext applicationContext;
     private DefaultListableBeanFactory defaultListableBeanFactory;
 
-    public Mono<List<List<SerializableSimpleEntry<String, String>>>> search(
+    public ScraperService(DefaultListableBeanFactory defaultListableBeanFactory) {
+        this.defaultListableBeanFactory = defaultListableBeanFactory;
+    }
+
+    private List<List<SerializableSimpleEntry<String, String>>> scrape(
+            ScraperInterface scraperInterface,
             BridgeRequestEntity bridgeRequestEntity) {
-        String scraperName = bridgeRequestEntity.getScraperName();
-        String beanName = scraperName +
-                bridgeRequestEntity.getUrl();
-
-        ScraperBeanInterface scraperBeanInterface;
-        ScraperInterface scraperInterface = null;
-
-        try {
-            scraperBeanInterface = (ScraperBeanInterface)
-                    defaultListableBeanFactory.getSingleton(beanName);
-            scraperInterface = scraperBeanInterface.getScraper();
-            log.info("obtained old instance");
-        } catch (NoSuchBeanDefinitionException | NullPointerException exception) {
-            log.info("caught exception: " + exception.getMessage());
-            try {
-                if (!defaultListableBeanFactory.containsBean(beanName) && !defaultListableBeanFactory.isSingletonCurrentlyInCreation(beanName)) {
-                    defaultListableBeanFactory.registerSingleton(beanName, Class.forName(
-                            "com.wherecanyoubuy.bridge.configuration.bean." +
-                                    scraperName.substring(0, 1).toUpperCase() +
-                                    scraperName.substring(1) + "ScraperBean")
-                            .getDeclaredConstructor()
-                            .newInstance());
-                }
-
-                scraperBeanInterface = (ScraperBeanInterface)
-                        defaultListableBeanFactory.getSingleton(beanName);
-                scraperInterface = scraperBeanInterface.getScraper();
-                scraperInterface.getUrl(bridgeRequestEntity.getUrl());
-                log.info("execute get");
-            } catch (Exception e) {
-                log.error(e.getMessage());
-                return Mono.just(Collections.singletonList(null));
-            }
-        }
-
-        List<List<SerializableSimpleEntry<String, String>>> list = scraperInterface
+        return scraperInterface
                 .findElements(bridgeRequestEntity
                         .getElementQuery()
                         .getItemCssQuery())
@@ -74,25 +38,96 @@ public class ScraperService {
                             List<ScrapedElementInteface> scrapedElements1 =
                                     scrapedElements.findElements(
                                             webElementQueryField.getCssQuery());
-                            return new SerializableSimpleEntry<>(webElementQueryField.getName(),
+                            return new SerializableSimpleEntry<>(
+                                    webElementQueryField.getName(),
                                     webElementQueryField
                                             .isAttribute() ? scrapedElements1
-                                            .remove(0)
+                                            .get(0)
                                             .getAttribute(webElementQueryField
                                                     .getAttributeName()) : scrapedElements1
-                                            .remove(0)
+                                            .get(0)
                                             .getText());
                         })
                         .collect(Collectors.toList()))
                 .collect(Collectors.toList());
+    }
 
-        log.info("busy: " + scraperInterface.isBusy());
+
+    public Mono<List<List<SerializableSimpleEntry<String, String>>>> search(
+            BridgeRequestEntity bridgeRequestEntity) {
+        String scraperName = bridgeRequestEntity.getScraperName();
+        String beanName = scraperName +
+                bridgeRequestEntity.getUrl();
+
+        ScraperBeanInterface scraperBeanInterface = null;
+        ScraperInterface scraperInterface = null;
+        List<List<SerializableSimpleEntry<String, String>>> list;
+
+        try {
+            scraperBeanInterface = (ScraperBeanInterface)
+                    defaultListableBeanFactory.getSingleton(beanName);
+            assert scraperBeanInterface != null;
+            scraperInterface = scraperBeanInterface.getScraper();
+        } catch (Exception exception) {
+            GenericBeanDefinition genericBeanDefinition = new GenericBeanDefinition();
+            Class<?> clazz;
+
+            try {
+                clazz = Class.forName(
+                        "com.wherecanyoubuy.bridge.configuration.bean." +
+                                scraperName.substring(0, 1).toUpperCase() +
+                                scraperName.substring(1) + "ScraperBean");
+            } catch (ClassNotFoundException e) {
+                return Mono.error(e);
+            }
+
+            genericBeanDefinition.setBeanClass(clazz);
+            defaultListableBeanFactory.registerBeanDefinition(beanName, genericBeanDefinition);
+
+            try {
+                scraperBeanInterface = (ScraperBeanInterface) clazz
+                        .getDeclaredConstructor()
+                        .newInstance();
+            } catch (InstantiationException |
+                    IllegalAccessException |
+                    InvocationTargetException |
+                    NoSuchMethodException e) {
+                return Mono.error(e);
+            }
+
+            try {
+                assert scraperBeanInterface != null;
+                defaultListableBeanFactory.registerSingleton(beanName, scraperBeanInterface);
+                scraperBeanInterface = (ScraperBeanInterface)
+                        defaultListableBeanFactory.getSingleton(beanName);
+
+                assert scraperBeanInterface != null;
+                scraperInterface = scraperBeanInterface.getScraper();
+                scraperInterface.startScraper();
+                scraperInterface.getUrl(bridgeRequestEntity.getUrl());
+            } catch (Exception e) {
+                try {
+                    scraperBeanInterface.destroy();
+                } catch (Exception ex) {
+                    log.error(ex.getMessage());
+                }
+                log.error(e.getMessage());
+                scraperBeanInterface = (ScraperBeanInterface)
+                        defaultListableBeanFactory.getSingleton(beanName);
+                assert scraperBeanInterface != null;
+                scraperInterface = scraperBeanInterface.getScraper();
+            }
+        }
+        list = scrape(scraperInterface, bridgeRequestEntity);
 
         if (defaultListableBeanFactory.containsBean(beanName)) {
+            try {
+                defaultListableBeanFactory.destroyBean(beanName, scraperBeanInterface);
+            } catch (Exception e) {
+                log.error(e.getMessage());
+            }
             defaultListableBeanFactory.destroySingleton(beanName);
-            log.info("destroyed. contains: " + defaultListableBeanFactory.containsBean(beanName));
         }
-
 
         return Mono.just(list);
     }

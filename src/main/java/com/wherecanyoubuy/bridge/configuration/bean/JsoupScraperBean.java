@@ -3,7 +3,7 @@ package com.wherecanyoubuy.bridge.configuration.bean;
 import com.wherecanyoubuy.bridge.scraper.jsoup.JsoupScraper;
 import org.springframework.beans.factory.DisposableBean;
 
-public class JsoupScraperBean implements DisposableBean, ScraperBeanInterface {
+public class JsoupScraperBean implements ScraperBeanInterface {
     private JsoupScraper jsoupScraper;
 
     public JsoupScraperBean() {
@@ -13,7 +13,7 @@ public class JsoupScraperBean implements DisposableBean, ScraperBeanInterface {
     public JsoupScraper getScraper() {
         return jsoupScraper;
     }
-
+    
     @Override
     public void destroy() {
         jsoupScraper.quit();
