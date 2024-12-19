@@ -44,6 +44,11 @@ public class JsoupJerryScraper extends AbstractScraper {
     }
 
     @Override
+    public ScrapedElementInteface findElement() {
+        throw new RuntimeException();
+    }
+
+    @Override
     @Synchronized
     public void quit() {
         super.quit();

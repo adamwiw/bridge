@@ -5,6 +5,7 @@ import com.wherecanyoubuy.bridge.scraper.ScrapedElementInteface;
 import jodd.jerry.Jerry;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.server.MethodNotAllowedException;
 
 import java.io.IOException;
 import java.util.List;
@@ -47,6 +48,11 @@ public class SeleniumJerryScraper extends AbstractScraper {
                                 webElement.getAttribute("outerHTML")))
                         .build())
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public ScrapedElementInteface findElement() {
+        throw new RuntimeException();
     }
 
     @Override

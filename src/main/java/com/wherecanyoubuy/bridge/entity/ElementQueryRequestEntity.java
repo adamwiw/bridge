@@ -2,13 +2,13 @@ package com.wherecanyoubuy.bridge.entity;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
+@EqualsAndHashCode(callSuper = true)
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class BridgeRequestEntity {
-    private String url;
+public class ElementQueryRequestEntity extends QueryRequestEntity {
     private ElementQuery elementQuery;
-    private String scraperName;
 }

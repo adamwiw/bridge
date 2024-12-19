@@ -7,4 +7,5 @@ public interface ScraperInterface {
     void startScraper();
     void getUrl(String url) throws IOException;
     List<ScrapedElementInteface> findElements(String cssQuery);
+    ScrapedElementInteface findElement();
 }

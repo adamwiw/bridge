@@ -1,16 +1,13 @@
 package com.wherecanyoubuy.bridge.entity;
 
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
-@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode(callSuper = true)
 @Getter
 @Setter
-public class ElementQueryField {
-    private String name;
+public class ElementQueryField extends RegexQueryField {
     private String cssQuery;
-    private boolean isAttribute;
     private String attributeName;
-    private String queryResult;
 }

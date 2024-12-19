@@ -6,6 +6,7 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Deprecated
@@ -33,5 +34,9 @@ public class SeleniumElement implements ScrapedElementInteface {
                                 .webElement(webElement1)
                                 .build())
                 .collect(Collectors.toList());
+    }
+
+    public String elementAttribute(String attribute) {
+        return webElement.getAttribute(attribute);
     }
 }

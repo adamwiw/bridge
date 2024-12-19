@@ -1,67 +1,39 @@
 package com.wherecanyoubuy.bridge.service;
 
 import com.wherecanyoubuy.bridge.configuration.bean.ScraperBeanInterface;
-import com.wherecanyoubuy.bridge.entity.BridgeRequestEntity;
-import com.wherecanyoubuy.bridge.entity.SerializableSimpleEntry;
-import com.wherecanyoubuy.bridge.scraper.ScrapedElementInteface;
+import com.wherecanyoubuy.bridge.entity.ElementQueryRequestEntity;
+import com.wherecanyoubuy.bridge.entity.QueryRequestEntity;
 import com.wherecanyoubuy.bridge.scraper.ScraperInterface;
+import com.wherecanyoubuy.bridge.service.scraper.ScraperServiceInterface;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.support.BeanDefinitionOverrideException;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.support.GenericBeanDefinition;
+import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
 
 @Slf4j
+@AllArgsConstructor
+@Component
 public class ScraperService {
-    private DefaultListableBeanFactory defaultListableBeanFactory;
+    private final DefaultListableBeanFactory defaultListableBeanFactory;
+    private final ScraperServiceInterface elementQueryScraper;
+    private final ScraperServiceInterface regexQueryScraper;
 
-    public ScraperService(DefaultListableBeanFactory defaultListableBeanFactory) {
-        this.defaultListableBeanFactory = defaultListableBeanFactory;
-    }
-
-    private List<List<SerializableSimpleEntry<String, String>>> scrape(
-            ScraperInterface scraperInterface,
-            BridgeRequestEntity bridgeRequestEntity) {
-        return scraperInterface
-                .findElements(bridgeRequestEntity
-                        .getElementQuery()
-                        .getItemCssQuery())
-                .stream()
-                .map(scrapedElements -> bridgeRequestEntity
-                        .getElementQuery()
-                        .getElementQueryFields()
-                        .stream()
-                        .map(webElementQueryField -> {
-                            List<ScrapedElementInteface> scrapedElements1 =
-                                    scrapedElements.findElements(
-                                            webElementQueryField.getCssQuery());
-                            return new SerializableSimpleEntry<>(
-                                    webElementQueryField.getName(),
-                                    webElementQueryField
-                                            .isAttribute() ? scrapedElements1
-                                            .get(0)
-                                            .getAttribute(webElementQueryField
-                                                    .getAttributeName()) : scrapedElements1
-                                            .get(0)
-                                            .getText());
-                        })
-                        .collect(Collectors.toList()))
-                .collect(Collectors.toList());
-    }
-
-
-    public Mono<List<List<SerializableSimpleEntry<String, String>>>> search(
-            BridgeRequestEntity bridgeRequestEntity) {
-        String scraperName = bridgeRequestEntity.getScraperName();
+    public Mono<List<Map<String, String>>> search(
+            QueryRequestEntity queryRequestEntity) {
+        String scraperName = queryRequestEntity.getScraperName();
         String beanName = scraperName +
-                bridgeRequestEntity.getUrl();
+                queryRequestEntity.getUrl();
 
         ScraperBeanInterface scraperBeanInterface = null;
         ScraperInterface scraperInterface = null;
-        List<List<SerializableSimpleEntry<String, String>>> list;
+        List<Map<String, String>> list;
 
         try {
             scraperBeanInterface = (ScraperBeanInterface)
@@ -82,21 +54,22 @@ public class ScraperService {
             }
 
             genericBeanDefinition.setBeanClass(clazz);
-            defaultListableBeanFactory.registerBeanDefinition(beanName, genericBeanDefinition);
+            if (!defaultListableBeanFactory.containsBean(beanName)) {
+                defaultListableBeanFactory.registerBeanDefinition(beanName, genericBeanDefinition);
+            }
 
             try {
                 scraperBeanInterface = (ScraperBeanInterface) clazz
                         .getDeclaredConstructor()
                         .newInstance();
             } catch (InstantiationException |
-                    IllegalAccessException |
-                    InvocationTargetException |
-                    NoSuchMethodException e) {
+                     IllegalAccessException |
+                     InvocationTargetException |
+                     NoSuchMethodException e) {
                 return Mono.error(e);
             }
 
             try {
-                assert scraperBeanInterface != null;
                 defaultListableBeanFactory.registerSingleton(beanName, scraperBeanInterface);
                 scraperBeanInterface = (ScraperBeanInterface)
                         defaultListableBeanFactory.getSingleton(beanName);
@@ -104,7 +77,7 @@ public class ScraperService {
                 assert scraperBeanInterface != null;
                 scraperInterface = scraperBeanInterface.getScraper();
                 scraperInterface.startScraper();
-                scraperInterface.getUrl(bridgeRequestEntity.getUrl());
+                scraperInterface.getUrl(queryRequestEntity.getUrl());
             } catch (Exception e) {
                 try {
                     scraperBeanInterface.destroy();
@@ -118,7 +91,12 @@ public class ScraperService {
                 scraperInterface = scraperBeanInterface.getScraper();
             }
         }
-        list = scrape(scraperInterface, bridgeRequestEntity);
+
+        if (queryRequestEntity instanceof ElementQueryRequestEntity) {
+            list = elementQueryScraper.scrape(scraperInterface, queryRequestEntity);
+        } else {
+            list = regexQueryScraper.scrape(scraperInterface, queryRequestEntity);
+        }
 
         if (defaultListableBeanFactory.containsBean(beanName)) {
             try {

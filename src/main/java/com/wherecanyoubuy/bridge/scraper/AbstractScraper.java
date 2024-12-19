@@ -19,7 +19,7 @@ public abstract class AbstractScraper implements ScraperInterface {
 
     public void startScraper() {
         String message = name + " instance started.";
-        log.debug(message);
+        log.info(message);
     }
 
     public void getUrl(String url) throws IOException {
@@ -29,6 +29,6 @@ public abstract class AbstractScraper implements ScraperInterface {
 
     public void quit() {
         String message = name + " instance stopped.";
-        log.debug(message);
+        log.info(message);
     }
 }

@@ -51,6 +51,11 @@ public class SeleniumJsoupScraper extends AbstractScraper {
     }
 
     @Override
+    public ScrapedElementInteface findElement() {
+        throw new RuntimeException();
+    }
+
+    @Override
     public void quit() {
         super.quit();
         driver.quit();

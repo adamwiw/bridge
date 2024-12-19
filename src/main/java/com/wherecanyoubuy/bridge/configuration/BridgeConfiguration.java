@@ -16,14 +16,10 @@ import static org.springframework.web.reactive.function.server.RequestPredicates
 @Configuration
 public class BridgeConfiguration {
     @Bean
-    public RouterFunction<ServerResponse> route() {
-        BridgeHandler bridgeHandler = BridgeHandler
-                .builder()
-                .scraperService(new ScraperService(new DefaultListableBeanFactory()))
-                .build();
-
+    public RouterFunction<ServerResponse> route(BridgeHandler bridgeHandler) {
         return RouterFunctions
-                .route(POST("/bridge/search").and(accept(APPLICATION_JSON)), bridgeHandler::search);
+                .route(POST("/bridge/search").and(accept(APPLICATION_JSON)), bridgeHandler::search)
+                .andRoute(POST("/bridge/search-regex").and(accept(APPLICATION_JSON)), bridgeHandler::searchRegex);
 
     }
 }
