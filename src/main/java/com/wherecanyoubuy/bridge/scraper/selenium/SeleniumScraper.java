@@ -28,8 +28,13 @@ public class SeleniumScraper extends AbstractScraper {
 
     private int lastStatusCode = -1;
 
+    private Path tempProfilePath = null;
+
     public SeleniumScraper() {
         super(org.slf4j.LoggerFactory.getLogger(SeleniumScraper.class));
+        // Set the system property for Chrome driver
+        System.setProperty("webdriver.chrome.driver", "/usr/bin/chromedriver");
+        Runtime.getRuntime().addShutdownHook(new Thread(this::quit));
     }
 
     @Override
@@ -51,22 +56,21 @@ public class SeleniumScraper extends AbstractScraper {
         chromeOptions.addArguments("--disable-extensions");
         chromeOptions.addArguments("--mute-audio");
         chromeOptions.addArguments("--disable-translate");
-        String tempProfile = "/tmp/chrome-profile-clean";
-        Path basePath = Paths.get(tempProfile);
+        chromeOptions.addArguments("--no-sandbox");
+        chromeOptions.addArguments("--disable-dev-shm-usage");
 
         try {
-            if (Files.exists(basePath)) {
-                Files.walk(basePath)
-                        .sorted(Comparator.reverseOrder())
-                        .map(Path::toFile)
-                        .forEach(File::delete);
+            tempProfilePath = Files.createTempDirectory("chrome-profile-");
+            if (!Files.isWritable(tempProfilePath)) {
+                throw new IOException("Temp profile path is not writable: " + tempProfilePath);
             }
+            chromeOptions.addArguments("--user-data-dir=" + tempProfilePath.toAbsolutePath());
         } catch (IOException e) {
             log.warn("Failed to clean Chrome profile directory: {}", e.getMessage());
         }
+
+
         super.startScraper(chromeOptions);
-        // Set the system property for Chrome driver
-        System.setProperty("webdriver.chrome.driver", "/usr/bin/chromedriver");
         // chromeOptions.setHeadless(true);
         driver = new ChromeDriver(chromeOptions);
 
@@ -143,6 +147,18 @@ public class SeleniumScraper extends AbstractScraper {
     @Synchronized
     public void quit() {
         super.quit();
-        driver.quit();
+        if (driver != null) {
+            driver.quit();
+        }
+        try {
+            if (tempProfilePath != null && Files.exists(tempProfilePath)) {
+                Files.walk(tempProfilePath)
+                        .sorted(Comparator.reverseOrder())
+                        .map(Path::toFile)
+                        .forEach(File::delete);
+            }
+        } catch (IOException e) {
+            log.warn("Failed to clean up temp Chrome profile directory: {}", e.getMessage());
+        }
     }
 }
