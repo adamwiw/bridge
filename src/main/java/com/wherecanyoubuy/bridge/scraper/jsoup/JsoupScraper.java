@@ -47,6 +47,21 @@ public class JsoupScraper extends AbstractScraper {
     }
 
     @Override
+    public String getPageSource() {
+        return null;
+    }
+
+    @Override
+    public long getSize() {
+        return 0;
+    }
+
+    @Override
+    public int getStatusCode() {
+        return -1;
+    }
+
+    @Override
     @Synchronized
     public void quit() {
         super.quit();

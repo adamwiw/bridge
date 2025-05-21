@@ -3,7 +3,9 @@ package com.wherecanyoubuy.bridge.scraper.selenium;
 import com.wherecanyoubuy.bridge.scraper.AbstractScraper;
 import com.wherecanyoubuy.bridge.scraper.ScrapedElementInteface;
 import jodd.jerry.Jerry;
+import org.openqa.selenium.By;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.server.MethodNotAllowedException;
 
@@ -20,8 +22,8 @@ public class SeleniumJerryScraper extends AbstractScraper {
     }
 
     @Override
-    public void startScraper() {
-        super.startScraper();
+    public void startScraper(ChromeOptions chromeOptions) {
+        super.startScraper(chromeOptions);
         // Set the system property for Chrome driver
         System.setProperty("webdriver.chrome.driver", "src/main/resources/driver/chromedriver.exe");
         driver = new ChromeDriver();
@@ -40,7 +42,7 @@ public class SeleniumJerryScraper extends AbstractScraper {
     @Override
     public List<ScrapedElementInteface> findElements(String cssQuery) {
         return driver
-                .findElementsByCssSelector(cssQuery)
+                .findElements(By.cssSelector(cssQuery))
                 .stream()
                 .map(webElement -> JerryElement
                         .builder()
@@ -53,6 +55,21 @@ public class SeleniumJerryScraper extends AbstractScraper {
     @Override
     public ScrapedElementInteface findElement() {
         throw new RuntimeException();
+    }
+
+    @Override
+    public String getPageSource() {
+        return null;
+    }
+
+    @Override
+    public long getSize() {
+        return 0;
+    }
+
+    @Override
+    public int getStatusCode() {
+        return -1;
     }
 
     @Override

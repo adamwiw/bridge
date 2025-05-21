@@ -10,4 +10,5 @@ import lombok.NoArgsConstructor;
 public class QueryRequestEntity {
     protected String url;
     protected String scraperName;
+    protected String proxy;
 }

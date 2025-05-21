@@ -26,8 +26,7 @@ public class ScraperService {
     private final ScraperServiceInterface elementQueryScraper;
     private final ScraperServiceInterface regexQueryScraper;
 
-    public Mono<List<Map<String, String>>> search(
-            QueryRequestEntity queryRequestEntity) {
+    public Mono<List<Map<String, String>>> search(QueryRequestEntity queryRequestEntity) {
         String scraperName = queryRequestEntity.getScraperName();
         String beanName = scraperName + queryRequestEntity.getUrl() + queryRequestEntity.getProxy();
 
@@ -36,9 +35,8 @@ public class ScraperService {
         List<Map<String, String>> list;
 
         try {
-            scraperBeanInterface = (ScraperBeanInterface)
-                    defaultListableBeanFactory.getSingleton(beanName);
-            assert scraperBeanInterface != null;
+            scraperBeanInterface = (ScraperBeanInterface) defaultListableBeanFactory.getSingleton(beanName);
+            if (scraperBeanInterface == null) throw new RuntimeException("Scraper bean was null");
             scraperInterface = scraperBeanInterface.getScraper();
         } catch (Exception exception) {
             GenericBeanDefinition genericBeanDefinition = new GenericBeanDefinition();
@@ -59,89 +57,99 @@ public class ScraperService {
             }
 
             try {
-                scraperBeanInterface = (ScraperBeanInterface) clazz
-                        .getDeclaredConstructor()
-                        .newInstance();
-            } catch (InstantiationException |
-                     IllegalAccessException |
-                     InvocationTargetException |
+                scraperBeanInterface = (ScraperBeanInterface) clazz.getDeclaredConstructor().newInstance();
+            } catch (InstantiationException | IllegalAccessException | InvocationTargetException |
                      NoSuchMethodException e) {
                 return Mono.error(e);
             }
 
             try {
                 defaultListableBeanFactory.registerSingleton(beanName, scraperBeanInterface);
-                scraperBeanInterface = (ScraperBeanInterface)
-                        defaultListableBeanFactory.getSingleton(beanName);
-
-                assert scraperBeanInterface != null;
+                scraperBeanInterface = (ScraperBeanInterface) defaultListableBeanFactory.getSingleton(beanName);
+                if (scraperBeanInterface == null)
+                    throw new RuntimeException("Scraper bean still null after registration");
                 scraperInterface = scraperBeanInterface.getScraper();
-                ChromeOptions chromeOptions = new ChromeOptions();
-                if (queryRequestEntity.getProxy() != null) {
-                    chromeOptions.addArguments(String.format("--proxy-server=%s", queryRequestEntity.getProxy()));
-                }
-                chromeOptions.setAcceptInsecureCerts(true);
-                scraperInterface.startScraper(chromeOptions);
-                scraperInterface.getUrl(queryRequestEntity.getUrl());
-                String html = scraperInterface.getPageSource().toLowerCase();
-                // Optionally: check if page has almost no content (failed silently)
-                if (html.trim().length() < 100) {
-                    throw new RuntimeException("Page content too short, possible blocked proxy.");
-                }
             } catch (Exception e) {
-                String msg = e.getMessage().toLowerCase();
-
-                if (e instanceof WebDriverException) {
-                    if (
-                            msg.contains("err_tunnel_connection_failed") ||
-                                    msg.contains("err_proxy_connection_failed") ||
-                                    msg.contains("err_unexpected_proxy_auth") ||
-                                    msg.contains("proxy authentication")
-                    ) {
-                        return Mono.error(new RuntimeException("Proxy failed: " + msg, e)); // your custom exception
-                    }
-
-                    if (
-                            msg.contains("err_connection_reset") ||
-                                    msg.contains("err_name_not_resolved") ||
-                                    msg.contains("err_connection_timed_out") ||
-                                    msg.contains("err_empty_response") ||
-                                    msg.contains("err_aborted") ||
-                                    msg.contains("err_ssl_protocol_error") ||
-                                    msg.contains("err_address_unreachable") ||
-                                    msg.contains("timeout") ||
-                                    msg.contains("refused") ||
-                                    msg.contains("unreachable") ||
-                                    msg.contains("page content too short")
-                    ) {
-                        return Mono.error(new RuntimeException("Site unreachable: " + msg, e)); // another custom exception
-                    }
-                }
-                try {
-                    scraperBeanInterface.destroy();
-                } catch (Exception ex) {
-                    log.error(ex.getMessage());
-                }
-                scraperBeanInterface = (ScraperBeanInterface)
-                        defaultListableBeanFactory.getSingleton(beanName);
-                assert scraperBeanInterface != null;
-                scraperInterface = scraperBeanInterface.getScraper();
+                return Mono.error(e);
             }
         }
 
-        if (queryRequestEntity instanceof ElementQueryRequestEntity) {
-            list = elementQueryScraper.scrape(scraperInterface, queryRequestEntity);
-        } else {
-            list = regexQueryScraper.scrape(scraperInterface, queryRequestEntity);
-        }
+        try {
+            ChromeOptions chromeOptions = new ChromeOptions();
+            if (queryRequestEntity.getProxy() != null) {
+                chromeOptions.addArguments(String.format("--proxy-server=%s", queryRequestEntity.getProxy()));
+            }
+            chromeOptions.setAcceptInsecureCerts(true);
+            scraperInterface.startScraper(chromeOptions);
+            scraperInterface.getUrl(queryRequestEntity.getUrl());
+            String html = scraperInterface.getPageSource().toLowerCase();
+            if (html.trim().equals("<html><head></head><body></body></html>")) {
+                throw new RuntimeException("Proxy failed: 🚫 Empty page from proxy — likely IP not whitelisted.");
+            }
+            if (html.contains("this site can’t be reached") ||
+                    html.contains("err_timed_out") ||
+                    html.contains("err_connection_reset") ||
+                    html.contains("check your internet connection") ||
+                    html.contains("proxy authentication required") ||
+                    html.contains("dns_probe_finished") ||
+                    html.contains("net::")  // catch other Chrome net errors
+            ) {
+                throw new RuntimeException("Site unreachable: " + html.trim());
+            }
+            if (scraperInterface.getStatusCode() >= 400) {
+                throw new RuntimeException("Site unreachable 400: " + scraperInterface.getStatusCode());
+            }
+        } catch (Exception e) {
+            String msg = e.getMessage().toLowerCase();
+            if (e instanceof WebDriverException) {
+                if (msg.contains("err_tunnel_connection_failed") ||
+                        msg.contains("err_proxy_connection_failed") ||
+                        msg.contains("err_unexpected_proxy_auth") ||
+                        msg.contains("proxy authentication")) {
+                    return Mono.error(new RuntimeException("Proxy failed: " + msg, e));
+                }
 
-        if (defaultListableBeanFactory.containsBean(beanName)) {
+                if (msg.contains("err_connection_reset") ||
+                        msg.contains("err_name_not_resolved") ||
+                        msg.contains("err_connection_timed_out") ||
+                        msg.contains("err_empty_response") ||
+                        msg.contains("err_aborted") ||
+                        msg.contains("err_ssl_protocol_error") ||
+                        msg.contains("err_address_unreachable") ||
+                        msg.contains("timeout") ||
+                        msg.contains("refused") ||
+                        msg.contains("unreachable") ||
+                        msg.contains("page content too short")) {
+                    return Mono.error(new RuntimeException("Site unreachable: " + msg, e));
+                }
+            }
+
             try {
-                defaultListableBeanFactory.destroyBean(beanName, scraperBeanInterface);
-            } catch (Exception e) {
-                log.error(e.getMessage());
+                if (scraperBeanInterface != null) scraperBeanInterface.destroy();
+            } catch (Exception ex) {
+                log.error("Error during scraper destroy: " + ex.getMessage());
             }
-            defaultListableBeanFactory.destroySingleton(beanName);
+            if (defaultListableBeanFactory.containsBean(beanName)) {
+                defaultListableBeanFactory.destroySingleton(beanName);
+            }
+            return Mono.error(e);
+        }
+
+        try {
+            if (queryRequestEntity instanceof ElementQueryRequestEntity) {
+                list = elementQueryScraper.scrape(scraperInterface, queryRequestEntity);
+            } else {
+                list = regexQueryScraper.scrape(scraperInterface, queryRequestEntity);
+            }
+        } finally {
+            try {
+                if (defaultListableBeanFactory.containsBean(beanName)) {
+                    defaultListableBeanFactory.destroyBean(beanName, scraperBeanInterface);
+                    defaultListableBeanFactory.destroySingleton(beanName);
+                }
+            } catch (Exception e) {
+                log.error("Cleanup error: " + e.getMessage());
+            }
         }
 
         return Mono.just(list);
