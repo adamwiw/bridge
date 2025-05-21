@@ -7,7 +7,8 @@ import com.wherecanyoubuy.bridge.scraper.ScraperInterface;
 import com.wherecanyoubuy.bridge.service.scraper.ScraperServiceInterface;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.support.BeanDefinitionOverrideException;
+import org.openqa.selenium.WebDriverException;
+import org.openqa.selenium.chrome.ChromeOptions;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.support.GenericBeanDefinition;
 import org.springframework.stereotype.Component;
@@ -28,8 +29,7 @@ public class ScraperService {
     public Mono<List<Map<String, String>>> search(
             QueryRequestEntity queryRequestEntity) {
         String scraperName = queryRequestEntity.getScraperName();
-        String beanName = scraperName +
-                queryRequestEntity.getUrl();
+        String beanName = scraperName + queryRequestEntity.getUrl() + queryRequestEntity.getProxy();
 
         ScraperBeanInterface scraperBeanInterface = null;
         ScraperInterface scraperInterface = null;
@@ -76,15 +76,52 @@ public class ScraperService {
 
                 assert scraperBeanInterface != null;
                 scraperInterface = scraperBeanInterface.getScraper();
-                scraperInterface.startScraper();
+                ChromeOptions chromeOptions = new ChromeOptions();
+                if (queryRequestEntity.getProxy() != null) {
+                    chromeOptions.addArguments(String.format("--proxy-server=%s", queryRequestEntity.getProxy()));
+                }
+                chromeOptions.setAcceptInsecureCerts(true);
+                scraperInterface.startScraper(chromeOptions);
                 scraperInterface.getUrl(queryRequestEntity.getUrl());
+                String html = scraperInterface.getPageSource().toLowerCase();
+                // Optionally: check if page has almost no content (failed silently)
+                if (html.trim().length() < 100) {
+                    throw new RuntimeException("Page content too short, possible blocked proxy.");
+                }
             } catch (Exception e) {
+                String msg = e.getMessage().toLowerCase();
+
+                if (e instanceof WebDriverException) {
+                    if (
+                            msg.contains("err_tunnel_connection_failed") ||
+                                    msg.contains("err_proxy_connection_failed") ||
+                                    msg.contains("err_unexpected_proxy_auth") ||
+                                    msg.contains("proxy authentication")
+                    ) {
+                        return Mono.error(new RuntimeException("Proxy failed: " + msg, e)); // your custom exception
+                    }
+
+                    if (
+                            msg.contains("err_connection_reset") ||
+                                    msg.contains("err_name_not_resolved") ||
+                                    msg.contains("err_connection_timed_out") ||
+                                    msg.contains("err_empty_response") ||
+                                    msg.contains("err_aborted") ||
+                                    msg.contains("err_ssl_protocol_error") ||
+                                    msg.contains("err_address_unreachable") ||
+                                    msg.contains("timeout") ||
+                                    msg.contains("refused") ||
+                                    msg.contains("unreachable") ||
+                                    msg.contains("page content too short")
+                    ) {
+                        return Mono.error(new RuntimeException("Site unreachable: " + msg, e)); // another custom exception
+                    }
+                }
                 try {
                     scraperBeanInterface.destroy();
                 } catch (Exception ex) {
                     log.error(ex.getMessage());
                 }
-                log.error(e.getMessage());
                 scraperBeanInterface = (ScraperBeanInterface)
                         defaultListableBeanFactory.getSingleton(beanName);
                 assert scraperBeanInterface != null;
