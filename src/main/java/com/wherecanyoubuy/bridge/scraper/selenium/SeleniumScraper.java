@@ -30,17 +30,37 @@ public class SeleniumScraper extends AbstractScraper {
 
     private Path tempProfilePath = null;
 
+    private DevTools devTools;
+
     public SeleniumScraper() {
         super(org.slf4j.LoggerFactory.getLogger(SeleniumScraper.class));
-        // Set the system property for Chrome driver
-        System.setProperty("webdriver.chrome.driver", "/usr/bin/chromedriver");
+        System.setProperty("webdriver.chrome.driver", "/opt/homebrew/bin/chromedriver");
+        cleanUpStaleProfiles();
         Runtime.getRuntime().addShutdownHook(new Thread(this::quit));
+    }
+
+    private void cleanUpStaleProfiles() {
+        File tmpDir = new File("/tmp");
+        File[] profiles = tmpDir.listFiles((dir, name) -> name.startsWith("chrome-profile-"));
+        if (profiles != null) {
+            for (File profile : profiles) {
+                try {
+                    Files.walk(profile.toPath())
+                            .sorted(Comparator.reverseOrder())
+                            .map(Path::toFile)
+                            .forEach(File::delete);
+                    log.info("🧹 Deleted stale profile: {}", profile.getName());
+                } catch (IOException e) {
+                    log.warn("❌ Failed to delete stale profile {}: {}", profile.getName(), e.getMessage());
+                }
+            }
+        }
     }
 
     @Override
     @Synchronized
     public void startScraper(ChromeOptions chromeOptions) {
-        chromeOptions.setBinary("/home/adam/bin/chromium-clean");
+//        chromeOptions.setBinary("/home/adam/bin/chromium-clean");
         chromeOptions.addArguments("--disable-blink-features=AutomationControlled");
 
         // Setup a Chrome DevTools Protocol (CDP) rule to block certain resource types
@@ -60,13 +80,13 @@ public class SeleniumScraper extends AbstractScraper {
         chromeOptions.addArguments("--disable-dev-shm-usage");
 
         try {
-            tempProfilePath = Files.createTempDirectory("chrome-profile-");
+            tempProfilePath = Files.createTempDirectory("chrome-profile-" + UUID.randomUUID());
             if (!Files.isWritable(tempProfilePath)) {
                 throw new IOException("Temp profile path is not writable: " + tempProfilePath);
             }
             chromeOptions.addArguments("--user-data-dir=" + tempProfilePath.toAbsolutePath());
         } catch (IOException e) {
-            log.warn("Failed to clean Chrome profile directory: {}", e.getMessage());
+            log.warn("Failed to create Chrome profile directory: {}", e.getMessage());
         }
 
 
@@ -74,7 +94,7 @@ public class SeleniumScraper extends AbstractScraper {
         // chromeOptions.setHeadless(true);
         driver = new ChromeDriver(chromeOptions);
 
-        DevTools devTools = driver.getDevTools();
+        devTools = driver.getDevTools();
         devTools.createSession();
         devTools.send(Network.enable(Optional.empty(), Optional.empty(), Optional.empty()));
         devTools.send(Network.setBlockedURLs(List.of("*.png", "*.jpg", "*.jpeg", "*.gif", "*.css", "*.woff", "*.woff2", "*.svg", "*.ttf", "*.mp4", "*.webm", "*.avi")));
@@ -147,8 +167,19 @@ public class SeleniumScraper extends AbstractScraper {
     @Synchronized
     public void quit() {
         super.quit();
+        if (devTools != null) {
+            devTools.clearListeners();
+            devTools.close(); // or devTools.disconnect() depending on version
+        }
+
+
         if (driver != null) {
-            driver.quit();
+            try {
+                driver.quit();
+            } catch (Exception e) {
+                log.warn("driver.quit() failed: {}", e.getMessage());
+                // Kill zombie process (optional: add pid tracking)
+            }
         }
         try {
             if (tempProfilePath != null && Files.exists(tempProfilePath)) {
