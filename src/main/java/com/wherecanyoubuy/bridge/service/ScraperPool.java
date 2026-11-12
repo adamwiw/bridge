@@ -3,7 +3,6 @@ package com.wherecanyoubuy.bridge.service;
 import com.wherecanyoubuy.bridge.configuration.bean.ScraperBeanInterface;
 import com.wherecanyoubuy.bridge.entity.QueryRequestEntity;
 import lombok.extern.slf4j.Slf4j;
-import org.openqa.selenium.chrome.ChromeOptions;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayDeque;
@@ -106,12 +105,7 @@ public class ScraperPool {
                             + name.substring(0, 1).toUpperCase() + name.substring(1) + "ScraperBean");
             ScraperBeanInterface bean = (ScraperBeanInterface) clazz.getDeclaredConstructor().newInstance();
 
-            ChromeOptions options = new ChromeOptions();
-            if (request.getProxy() != null) {
-                options.addArguments("--proxy-server=" + request.getProxy());
-            }
-            options.setAcceptInsecureCerts(true);
-            bean.getScraper().startScraper(options);
+            bean.getScraper().startScraper(request.getProxy());
 
             log.info("Spawned scraper engine={} proxy={}", name, request.getProxy() == null ? "direct" : request.getProxy());
             return bean;

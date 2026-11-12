@@ -1,10 +1,8 @@
 package com.wherecanyoubuy.bridge.scraper;
 
-import org.openqa.selenium.chrome.ChromeOptions;
 import org.slf4j.Logger;
 
 import java.io.IOException;
-import java.net.Proxy;
 
 public abstract class AbstractScraper implements ScraperInterface {
     protected Logger log;
@@ -19,7 +17,7 @@ public abstract class AbstractScraper implements ScraperInterface {
                 .substring(1).replace("Scraper", "");
     }
 
-    public void startScraper(ChromeOptions chromeOptions) {
+    public void startScraper(String proxy) {
         String message = name + " instance started.";
         log.info(message);
     }

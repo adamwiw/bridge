@@ -4,7 +4,6 @@ import com.wherecanyoubuy.bridge.entity.ElementQueryRequestEntity;
 import com.wherecanyoubuy.bridge.entity.RegexQueryRequestEntity;
 import com.wherecanyoubuy.bridge.service.ScraperService;
 import lombok.AllArgsConstructor;
-import org.openqa.selenium.WebDriverException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
@@ -41,8 +40,8 @@ public class BridgeHandler {
                     String msg = throwable.getMessage().toLowerCase();
 
                     boolean isProxyFailure =
-                            throwable instanceof WebDriverException && msg.contains("err_tunnel_connection_failed") ||
-                                    throwable instanceof WebDriverException && msg.contains("err_proxy_connection_failed") ||
+                            msg.contains("err_tunnel_connection_failed") ||
+                                    msg.contains("err_proxy_connection_failed") ||
                                     msg.contains("proxy failed") ||
                                     msg.contains("proxy authentication") ||
                                     msg.contains("authentication");

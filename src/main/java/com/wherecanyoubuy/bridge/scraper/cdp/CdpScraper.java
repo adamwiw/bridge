@@ -6,7 +6,6 @@ import com.wherecanyoubuy.bridge.scraper.ScrapedElementInteface;
 import com.wherecanyoubuy.bridge.scraper.ScraperInterface;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
-import org.openqa.selenium.chrome.ChromeOptions;
 
 import java.io.OutputStream;
 import java.net.URI;
@@ -52,9 +51,9 @@ public class CdpScraper implements ScraperInterface {
     private volatile long size = 0;
 
     @Override
-    public void startScraper(ChromeOptions options) {
+    public void startScraper(String proxy) {
         try {
-            userDataDir = profileDir(proxyFrom(options));
+            userDataDir = profileDir(proxy);
             List<String> cmd = new ArrayList<>(List.of(
                     resolveChrome(),
                     "--headless=new",
@@ -68,12 +67,8 @@ public class CdpScraper implements ScraperInterface {
                     "--disable-blink-features=AutomationControlled",
                     "--window-size=1920,1080"
             ));
-            Object chromeOptions = options == null ? null : options.getCapability("goog:chromeOptions");
-            if (chromeOptions instanceof Map<?, ?> map && map.get("args") instanceof List<?> args) {
-                args.stream()
-                        .map(Object::toString)
-                        .filter(a -> a.startsWith("--proxy-server="))
-                        .forEach(cmd::add);
+            if (proxy != null && !proxy.isBlank()) {
+                cmd.add("--proxy-server=" + proxy);
             }
             cmd.add("about:blank");
 
@@ -259,16 +254,6 @@ public class CdpScraper implements ScraperInterface {
         throw new IllegalStateException("No page target available");
     }
 
-    private static String proxyFrom(ChromeOptions options) {
-        Object chromeOptions = options == null ? null : options.getCapability("goog:chromeOptions");
-        if (chromeOptions instanceof Map<?, ?> map && map.get("args") instanceof List<?> args) {
-            return args.stream().map(Object::toString)
-                    .filter(a -> a.startsWith("--proxy-server="))
-                    .map(a -> a.substring("--proxy-server=".length()))
-                    .findFirst().orElse(null);
-        }
-        return null;
-    }
 
     private static Path profileDir(String proxy) throws Exception {
         String base = System.getenv("BRIDGE_PROFILE_DIR");

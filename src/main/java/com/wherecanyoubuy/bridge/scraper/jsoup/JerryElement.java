@@ -1,4 +1,4 @@
-package com.wherecanyoubuy.bridge.scraper.selenium;
+package com.wherecanyoubuy.bridge.scraper.jsoup;
 
 import com.wherecanyoubuy.bridge.scraper.ScrapedElementInteface;
 import jodd.jerry.Jerry;

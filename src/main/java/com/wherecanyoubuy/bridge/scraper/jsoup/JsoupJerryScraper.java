@@ -2,7 +2,7 @@ package com.wherecanyoubuy.bridge.scraper.jsoup;
 
 import com.wherecanyoubuy.bridge.scraper.AbstractScraper;
 import com.wherecanyoubuy.bridge.scraper.ScrapedElementInteface;
-import com.wherecanyoubuy.bridge.scraper.selenium.JerryElement;
+import com.wherecanyoubuy.bridge.scraper.jsoup.JerryElement;
 import jodd.jerry.Jerry;
 import lombok.Synchronized;
 import org.jsoup.Jsoup;

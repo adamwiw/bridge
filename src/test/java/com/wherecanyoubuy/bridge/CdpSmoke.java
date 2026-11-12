@@ -1,12 +1,11 @@
 package com.wherecanyoubuy.bridge;
 
 import com.wherecanyoubuy.bridge.scraper.cdp.CdpScraper;
-import org.openqa.selenium.chrome.ChromeOptions;
 
 public class CdpSmoke {
     public static void main(String[] args) throws Exception {
         CdpScraper s = new CdpScraper();
-        s.startScraper(new ChromeOptions());
+        s.startScraper(null);
         try {
             s.getUrl(args.length > 0 ? args[0] : "https://example.com");
             System.out.println("status=" + s.getStatusCode() + " size=" + s.getSize());

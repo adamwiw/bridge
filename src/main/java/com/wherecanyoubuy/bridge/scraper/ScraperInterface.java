@@ -1,12 +1,11 @@
 package com.wherecanyoubuy.bridge.scraper;
 
-import org.openqa.selenium.chrome.ChromeOptions;
 
 import java.io.IOException;
 import java.util.List;
 
 public interface ScraperInterface {
-    void startScraper(ChromeOptions chromeOptions);
+    void startScraper(String proxy);
 
     void getUrl(String url) throws IOException;
 
