@@ -43,20 +43,33 @@ public class BridgeHandler {
                 .onErrorResume(this::errorResponse);
     }
 
-    public Mono<ServerResponse> fetch(ServerRequest serverRequest) {
+    public Mono<ServerResponse> sessionOpen(ServerRequest serverRequest) {
         return serverRequest
                 .bodyToMono(FetchRequest.class)
-                .flatMap(scraperService::fetch)
+                .flatMap(scraperService::openSession)
                 .flatMap(result -> ServerResponse.ok().bodyValue(result))
                 .onErrorResume(this::errorResponse);
     }
 
-    public Mono<ServerResponse> extract(ServerRequest serverRequest) {
+    public Mono<ServerResponse> sessionExtract(ServerRequest serverRequest) {
         return serverRequest
                 .bodyToMono(ExtractRequest.class)
-                .flatMap(scraperService::extract)
+                .flatMap(scraperService::extractSession)
                 .flatMap(result -> ServerResponse.ok().bodyValue(result))
                 .onErrorResume(this::errorResponse);
+    }
+
+    public Mono<ServerResponse> sessionClose(ServerRequest serverRequest) {
+        return serverRequest
+                .bodyToMono(ExtractRequest.class)
+                .flatMap(request -> scraperService.closeSession(request.getSessionId()))
+                .flatMap(closed -> ServerResponse.ok().bodyValue(java.util.Map.of("closed", closed)))
+                .onErrorResume(this::errorResponse);
+    }
+
+    public Mono<ServerResponse> sessions(ServerRequest serverRequest) {
+        return scraperService.sessionCount()
+                .flatMap(open -> ServerResponse.ok().bodyValue(java.util.Map.of("open", open)));
     }
 
     private Mono<ServerResponse> errorResponse(Throwable throwable) {

@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ExtractRequest {
-    private String id;
+    private String sessionId;
     private ElementQuery elementQuery;
     private RegexQuery regexQuery;
 }

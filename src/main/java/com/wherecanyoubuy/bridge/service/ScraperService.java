@@ -23,7 +23,7 @@ import java.util.Map;
 @Component
 public class ScraperService {
     private final ScraperPool scraperPool;
-    private final FetchStore fetchStore;
+    private final SessionStore sessionStore;
     private final ScraperServiceInterface elementQueryScraper;
     private final ScraperServiceInterface regexQueryScraper;
 
@@ -42,46 +42,54 @@ public class ScraperService {
         return search(request);
     }
 
-    public Mono<Map<String, String>> fetch(FetchRequest request) {
+    public Mono<Map<String, String>> openSession(FetchRequest request) {
         QueryRequestEntity query = new QueryRequestEntity(request.getUrl(), request.getScraperName(), request.getProxy());
         return Mono
                 .fromCallable(() -> scraperPool.use(query, bean -> {
                     ScraperInterface scraper = bean.getScraper();
                     navigate(scraper, request.getUrl());
                     validate(scraper);
-                    String id = fetchStore.put(scraper.getPageSource(), scraper.getStatusCode());
+                    String id = sessionStore.open(scraper.getPageSource(), scraper.getStatusCode());
                     return Map.of(
-                            "id", id,
+                            "sessionId", id,
                             "status", String.valueOf(scraper.getStatusCode()),
                             "size", String.valueOf(scraper.getSize()));
                 }))
                 .subscribeOn(Schedulers.boundedElastic());
     }
 
-    public Mono<List<Map<String, String>>> extract(ExtractRequest request) {
+    public Mono<List<Map<String, String>>> extractSession(ExtractRequest request) {
         return Mono.fromCallable(() -> {
-            FetchStore.Stored stored = fetchStore.get(request.getId());
-            if (stored == null) {
-                throw new RuntimeException("Unknown or expired fetch id: " + request.getId());
+            SessionStore.Session session = sessionStore.get(request.getSessionId());
+            if (session == null) {
+                throw new RuntimeException("Unknown session: " + request.getSessionId());
             }
-            ScraperInterface page = new StoredPageScraper(stored.html(), stored.status());
+            ScraperInterface page = new StoredPageScraper(session.html, session.status);
 
             if (request.getElementQuery() != null) {
                 ElementQueryRequestEntity query = new ElementQueryRequestEntity();
-                query.setUrl("stored://" + request.getId());
-                query.setScraperName("stored");
+                query.setUrl("session://" + request.getSessionId());
+                query.setScraperName("session");
                 query.setElementQuery(request.getElementQuery());
                 return elementQueryScraper.scrape(page, query);
             }
             if (request.getRegexQuery() != null) {
                 RegexQueryRequestEntity query = new RegexQueryRequestEntity();
-                query.setUrl("stored://" + request.getId());
-                query.setScraperName("stored");
+                query.setUrl("session://" + request.getSessionId());
+                query.setScraperName("session");
                 query.setRegexQuery(request.getRegexQuery());
                 return regexQueryScraper.scrape(page, query);
             }
             throw new RuntimeException("extract requires elementQuery or regexQuery");
         }).subscribeOn(Schedulers.boundedElastic());
+    }
+
+    public Mono<Boolean> closeSession(String sessionId) {
+        return Mono.fromCallable(() -> sessionStore.close(sessionId));
+    }
+
+    public Mono<Integer> sessionCount() {
+        return Mono.fromCallable(sessionStore::count);
     }
 
     private List<Map<String, String>> scrape(ScraperInterface scraper, QueryRequestEntity request) {
