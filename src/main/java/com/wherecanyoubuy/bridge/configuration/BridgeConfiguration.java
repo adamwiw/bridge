@@ -19,7 +19,9 @@ public class BridgeConfiguration {
     public RouterFunction<ServerResponse> route(BridgeHandler bridgeHandler) {
         return RouterFunctions
                 .route(POST("/bridge/search").and(accept(APPLICATION_JSON)), bridgeHandler::search)
-                .andRoute(POST("/bridge/search-regex").and(accept(APPLICATION_JSON)), bridgeHandler::searchRegex);
+                .andRoute(POST("/bridge/search-regex").and(accept(APPLICATION_JSON)), bridgeHandler::searchRegex)
+                .andRoute(POST("/bridge/fetch"), bridgeHandler::fetch)
+                .andRoute(POST("/bridge/extract"), bridgeHandler::extract);
 
     }
 }

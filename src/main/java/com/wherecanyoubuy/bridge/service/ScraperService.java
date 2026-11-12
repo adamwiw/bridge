@@ -2,8 +2,12 @@ package com.wherecanyoubuy.bridge.service;
 
 import com.wherecanyoubuy.bridge.configuration.bean.ScraperBeanInterface;
 import com.wherecanyoubuy.bridge.entity.ElementQueryRequestEntity;
+import com.wherecanyoubuy.bridge.entity.ExtractRequest;
+import com.wherecanyoubuy.bridge.entity.FetchRequest;
 import com.wherecanyoubuy.bridge.entity.QueryRequestEntity;
+import com.wherecanyoubuy.bridge.entity.RegexQueryRequestEntity;
 import com.wherecanyoubuy.bridge.scraper.ScraperInterface;
+import com.wherecanyoubuy.bridge.scraper.StoredPageScraper;
 import com.wherecanyoubuy.bridge.service.scraper.ScraperServiceInterface;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,12 +23,18 @@ import java.util.Map;
 @Component
 public class ScraperService {
     private final ScraperPool scraperPool;
+    private final FetchStore fetchStore;
     private final ScraperServiceInterface elementQueryScraper;
     private final ScraperServiceInterface regexQueryScraper;
 
     public Mono<List<Map<String, String>>> search(QueryRequestEntity request) {
         return Mono
-                .fromCallable(() -> scraperPool.use(request, bean -> scrape(bean, request)))
+                .fromCallable(() -> scraperPool.use(request, bean -> {
+                    ScraperInterface scraper = bean.getScraper();
+                    navigate(scraper, request.getUrl());
+                    validate(scraper);
+                    return scrape(scraper, request);
+                }))
                 .subscribeOn(Schedulers.boundedElastic());
     }
 
@@ -32,15 +42,64 @@ public class ScraperService {
         return search(request);
     }
 
-    private List<Map<String, String>> scrape(ScraperBeanInterface bean, QueryRequestEntity request) {
-        ScraperInterface scraper = bean.getScraper();
+    public Mono<Map<String, String>> fetch(FetchRequest request) {
+        QueryRequestEntity query = new QueryRequestEntity(request.getUrl(), request.getScraperName(), request.getProxy());
+        return Mono
+                .fromCallable(() -> scraperPool.use(query, bean -> {
+                    ScraperInterface scraper = bean.getScraper();
+                    navigate(scraper, request.getUrl());
+                    validate(scraper);
+                    String id = fetchStore.put(scraper.getPageSource(), scraper.getStatusCode());
+                    return Map.of(
+                            "id", id,
+                            "status", String.valueOf(scraper.getStatusCode()),
+                            "size", String.valueOf(scraper.getSize()));
+                }))
+                .subscribeOn(Schedulers.boundedElastic());
+    }
 
+    public Mono<List<Map<String, String>>> extract(ExtractRequest request) {
+        return Mono.fromCallable(() -> {
+            FetchStore.Stored stored = fetchStore.get(request.getId());
+            if (stored == null) {
+                throw new RuntimeException("Unknown or expired fetch id: " + request.getId());
+            }
+            ScraperInterface page = new StoredPageScraper(stored.html(), stored.status());
+
+            if (request.getElementQuery() != null) {
+                ElementQueryRequestEntity query = new ElementQueryRequestEntity();
+                query.setUrl("stored://" + request.getId());
+                query.setScraperName("stored");
+                query.setElementQuery(request.getElementQuery());
+                return elementQueryScraper.scrape(page, query);
+            }
+            if (request.getRegexQuery() != null) {
+                RegexQueryRequestEntity query = new RegexQueryRequestEntity();
+                query.setUrl("stored://" + request.getId());
+                query.setScraperName("stored");
+                query.setRegexQuery(request.getRegexQuery());
+                return regexQueryScraper.scrape(page, query);
+            }
+            throw new RuntimeException("extract requires elementQuery or regexQuery");
+        }).subscribeOn(Schedulers.boundedElastic());
+    }
+
+    private List<Map<String, String>> scrape(ScraperInterface scraper, QueryRequestEntity request) {
+        if (request instanceof ElementQueryRequestEntity) {
+            return elementQueryScraper.scrape(scraper, request);
+        }
+        return regexQueryScraper.scrape(scraper, request);
+    }
+
+    private void navigate(ScraperInterface scraper, String url) {
         try {
-            scraper.getUrl(request.getUrl());
+            scraper.getUrl(url);
         } catch (Exception e) {
             throw new RuntimeException("Site unreachable: " + e.getMessage(), e);
         }
+    }
 
+    private void validate(ScraperInterface scraper) {
         String html = scraper.getPageSource() == null ? "" : scraper.getPageSource().toLowerCase();
 
         if (html.trim().equals("<html><head></head><body></body></html>")) {
@@ -58,10 +117,5 @@ public class ScraperService {
         if (scraper.getStatusCode() >= 400) {
             throw new RuntimeException("Site unreachable 400: " + scraper.getStatusCode());
         }
-
-        if (request instanceof ElementQueryRequestEntity) {
-            return elementQueryScraper.scrape(scraper, request);
-        }
-        return regexQueryScraper.scrape(scraper, request);
     }
 }
