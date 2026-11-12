@@ -35,6 +35,13 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class CdpScraper implements ScraperInterface {
     private static final ObjectMapper JSON = new ObjectMapper();
+    private static final String REAL_UA =
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36";
+    private static final String STEALTH_JS = """
+            Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+            Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
+            if (!window.chrome) { window.chrome = { runtime: {} }; }
+            """;
     private static final Duration NAV_TIMEOUT = Duration.ofSeconds(45);
     private static final Duration CMD_TIMEOUT = Duration.ofSeconds(20);
 
@@ -84,6 +91,11 @@ public class CdpScraper implements ScraperInterface {
             connect(firstPageTarget(port));
             call("Page.enable", null);
             call("Network.enable", null);
+            call("Page.addScriptToEvaluateOnNewDocument", Map.of("source", STEALTH_JS));
+            call("Network.setUserAgentOverride", Map.of(
+                    "userAgent", REAL_UA,
+                    "acceptLanguage", "en-US,en;q=0.9",
+                    "platform", "MacIntel"));
         } catch (Exception e) {
             quit();
             throw new RuntimeException("CDP start failed: " + e.getMessage(), e);
@@ -165,7 +177,7 @@ public class CdpScraper implements ScraperInterface {
         }
     }
 
-    private String evaluate(String expression) {
+    public String evaluate(String expression) {
         JsonNode response = call("Runtime.evaluate", Map.of(
                 "expression", expression,
                 "returnByValue", true,
