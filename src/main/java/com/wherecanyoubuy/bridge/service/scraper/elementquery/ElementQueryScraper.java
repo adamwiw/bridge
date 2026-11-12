@@ -5,7 +5,6 @@ import com.wherecanyoubuy.bridge.entity.QueryRequestEntity;
 import com.wherecanyoubuy.bridge.entity.SerializableSimpleEntry;
 import com.wherecanyoubuy.bridge.scraper.ScrapedElementInteface;
 import com.wherecanyoubuy.bridge.scraper.ScraperInterface;
-import com.wherecanyoubuy.bridge.scraper.selenium.SeleniumElement;
 import com.wherecanyoubuy.bridge.service.scraper.ScraperServiceInterface;
 import org.springframework.stereotype.Component;
 
@@ -44,13 +43,13 @@ public class ElementQueryScraper implements ScraperServiceInterface {
                                                     .getText()));
                             }
                             if (webElementQueryField.getAttributeName() != null) {
-                                String value = ((SeleniumElement) scrapedElements).elementAttribute(webElementQueryField.getAttributeName());
+                                String value = scrapedElements.getAttribute(webElementQueryField.getAttributeName());
                                 if (value == null) {
                                     return Stream.empty();
                                 }
                                 return Stream.of(new SerializableSimpleEntry<>(
                                         webElementQueryField.getName(),
-                                        ((SeleniumElement) scrapedElements).elementAttribute(webElementQueryField.getAttributeName())));
+                                        scrapedElements.getAttribute(webElementQueryField.getAttributeName())));
                             }
                             return Stream.of(new SerializableSimpleEntry<>(
                                     webElementQueryField.getName(),
