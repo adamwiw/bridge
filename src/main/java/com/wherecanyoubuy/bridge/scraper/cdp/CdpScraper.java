@@ -54,7 +54,7 @@ public class CdpScraper implements ScraperInterface {
     @Override
     public void startScraper(ChromeOptions options) {
         try {
-            userDataDir = Files.createTempDirectory("bridge-cdp-");
+            userDataDir = profileDir(proxyFrom(options));
             List<String> cmd = new ArrayList<>(List.of(
                     resolveChrome(),
                     "--headless=new",
@@ -65,6 +65,7 @@ public class CdpScraper implements ScraperInterface {
                     "--disable-gpu",
                     "--disable-dev-shm-usage",
                     "--disable-background-networking",
+                    "--disable-blink-features=AutomationControlled",
                     "--window-size=1920,1080"
             ));
             Object chromeOptions = options == null ? null : options.getCapability("goog:chromeOptions");
@@ -146,16 +147,8 @@ public class CdpScraper implements ScraperInterface {
             }
         } catch (Exception ignored) {
         }
-        try {
-            if (userDataDir != null) {
-                try (var walk = Files.walk(userDataDir)) {
-                    walk.sorted(java.util.Comparator.reverseOrder()).forEach(p -> {
-                        try { Files.deleteIfExists(p); } catch (Exception ignored) {}
-                    });
-                }
-            }
-        } catch (Exception ignored) {
-        }
+        // The user-data-dir is intentionally kept: it holds the warmed profile
+        // (cookies + solved-challenge tokens) for this identity.
     }
 
     // --- CDP plumbing ---
@@ -264,6 +257,35 @@ public class CdpScraper implements ScraperInterface {
             Thread.sleep(100);
         }
         throw new IllegalStateException("No page target available");
+    }
+
+    private static String proxyFrom(ChromeOptions options) {
+        Object chromeOptions = options == null ? null : options.getCapability("goog:chromeOptions");
+        if (chromeOptions instanceof Map<?, ?> map && map.get("args") instanceof List<?> args) {
+            return args.stream().map(Object::toString)
+                    .filter(a -> a.startsWith("--proxy-server="))
+                    .map(a -> a.substring("--proxy-server=".length()))
+                    .findFirst().orElse(null);
+        }
+        return null;
+    }
+
+    private static Path profileDir(String proxy) throws Exception {
+        String base = System.getenv("BRIDGE_PROFILE_DIR");
+        Path root = base != null && !base.isBlank()
+                ? Path.of(base)
+                : Path.of(System.getProperty("user.home"), ".bridge", "profiles");
+        String key = proxy == null ? "direct" : proxy.replaceAll("[^a-zA-Z0-9.-]", "_");
+        Path dir = root.resolve(key);
+        Files.createDirectories(dir);
+        // Remove leftovers from a previous (possibly killed) run so Chrome can own the profile.
+        for (String stale : List.of("SingletonLock", "SingletonSocket", "SingletonCookie", "DevToolsActivePort")) {
+            try {
+                Files.deleteIfExists(dir.resolve(stale));
+            } catch (Exception ignored) {
+            }
+        }
+        return dir;
     }
 
     private String resolveChrome() {
